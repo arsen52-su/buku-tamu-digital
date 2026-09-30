@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buku Tamu Digital</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+    .card { background: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); width: 100%; max-width: 480px; }
+    h2 { text-align: center; color: #1d4ed8; margin-bottom: 20px; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; color: #374151; }
+    input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; outline: none; }
+    button { width: 100%; padding: 12px; background-color: #2563eb; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    button:hover { background-color: #1d4ed8; }
+    .list-title { margin-top: 25px; margin-bottom: 10px; font-weight: bold; }
+    .guest-list { max-height: 200px; overflow-y: auto; border-top: 1px solid #e5e7eb; padding-top: 10px; }
+    .guest-item { background-color: #f9fafb; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #2563eb; }
+    .guest-name { font-weight: bold; color: #111827; }
+    .guest-purpose { font-size: 13px; color: #4b5563; }
+    .guest-time { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Buku Tamu Digital</h2>
+
+    <form id="formTamu">
+      <div class="form-group">
+        <label for="nama">Nama lengkap</label>
+        <input type="text" id="nama" placeholder="Masukkan nama Anda" required>
+      </div>
+      <div class="form-group">
+        <label for="keperluan">Keperluan</label>
+        <textarea id="keperluan" rows="3" placeholder="Tuliskan keperluan Anda" required></textarea>
+      </div>
+      <button type="submit" id="btnKirim">Kirim Data</button>
+    </form>
+
+    <div class="list-title">Daftar Pengunjung</div>
+    <div id="daftar" class="guest-list">
+      <p style="color: #6b7280; font-size: 14px;">Memuat data...</p>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // GANTI 2 BARIS DI BAWAH DENGAN API KEY SUPABASE ANDA
+    // -------------------------------------------------------------
+    const SUPABASE_URL = 'sb_publishable_Nnl0qaBNjJ2p-z0wmkyKpA_Ysya0HFZ';
+    const SUPABASE_KEY = 'sb_publishable_Nnl0qaBNjJ2p-z0wmkyKpA_Ysya0HFZ';
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const formTamu = document.getElementById('formTamu');
+    const daftarDiv = document.getElementById('daftar');
+    const btnKirim = document.getElementById('btnKirim');
+
+    async function fetchGuests() {
+      const { data, error } = await supabaseClient
+        .from('buku_tamu')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        daftarDiv.innerHTML = `<p style="color:red; font-size:13px;">Gagal memuat data</p>`;
+        return;
+      }
+
+      if (data.length === 0) {
+        daftarDiv.innerHTML = '<p style="color: #6b7280; font-size: 14px;">Belum ada tamu.</p>';
+        return;
+      }
+
+      daftarDiv.innerHTML = '';
+      data.forEach(tamu => {
+        const item = document.createElement('div');
+        item.className = 'guest-item';
+        const timeFormatted = new Date(tamu.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+        item.innerHTML = `
+          <div class="guest-name">${tamu.nama}</div>
+          <div class="guest-purpose">${tamu.keperluan}</div>
+          <div class="guest-time">${timeFormatted}</div>
+        `;
+        daftarDiv.appendChild(item);
+      });
+    }
+
+    formTamu.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nama = document.getElementById('nama').value;
+      const keperluan = document.getElementById('keperluan').value;
+
+      btnKirim.disabled = true;
+      btnKirim.textContent = 'Mengirim...';
+
+      const { error } = await supabaseClient
+        .from('buku_tamu')
+        .insert([{ nama: nama, keperluan: keperluan }]);
+
+      btnKirim.disabled = false;
+      btnKirim.textContent = 'Kirim Data';
+
+      if (error) {
+        alert('Gagal menyimpan data: ' + error.message);
+      } else {
+        formTamu.reset();
+        fetchGuests();
+      }
+    });
+
+    fetchGuests();
+  </script>
+</body>
+</html>
